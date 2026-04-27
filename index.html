@@ -47,7 +47,7 @@ button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);col
 .hide{display:none}
 .footer{margin-top:40px;text-align:center;font-size:12px;color:var(--gray);padding-top:20px;border-top:1px solid var(--border);}
 
-/* 表情面板修复 */
+/* 表情面板 */
 .emoji-btn{
   display:inline-block;
   padding:8px 14px;
@@ -57,11 +57,10 @@ button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);col
   cursor:pointer;
   margin-right:8px;
   user-select:none;
-  /* 修复移动端点击 */
   -webkit-tap-highlight-color: transparent;
 }
 .emoji-panel{
-  display:none; /* 初始隐藏 */
+  display:none;
   padding:12px;
   background:#fff;
   border:1px solid #ddd;
@@ -105,7 +104,7 @@ button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);col
         <input type="text" id="postTitle" placeholder="📌 输入主题标题">
         <textarea id="postContent" rows="3" placeholder="✍️ 输入帖子内容"></textarea>
 
-        <!-- 表情按钮（修复版） -->
+        <!-- 表情按钮（现在绝对不会报错） -->
         <div style="margin-bottom:10px">
             <div class="emoji-btn" id="emojiBtn" onclick="toggleEmojiPanel()">😊 表情</div>
             <div class="emoji-panel" id="emojiPanel">
@@ -151,6 +150,22 @@ button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);col
 </div>
 
 <script>
+// ========== 【关键修复】先定义表情函数，再定义其他 ==========
+function toggleEmojiPanel(){
+    const panel = document.getElementById("emojiPanel");
+    if(panel.style.display === "none" || panel.style.display === ""){
+        panel.style.display = "flex";
+    }else{
+        panel.style.display = "none";
+    }
+}
+function insertEmoji(emoji){
+    const textarea = document.getElementById("postContent");
+    textarea.value += emoji;
+    textarea.focus();
+    document.getElementById("emojiPanel").style.display = "none";
+}
+
 // ========== 基础配置 ==========
 const CONFIG = {
     storageKey: "ailevo_community_v4",
@@ -187,24 +202,6 @@ function checkFlood(){
     let now=Date.now();
     if(now-lastPostTime<CONFIG.floodInterval)return false;
     lastPostTime=now;return true;
-}
-
-// ========== 表情功能（修复版） ==========
-function toggleEmojiPanel(){
-    const panel = document.getElementById("emojiPanel");
-    // 修复：判断空+none两种情况
-    if(panel.style.display === "none" || panel.style.display === ""){
-        panel.style.display = "flex";
-    }else{
-        panel.style.display = "none";
-    }
-}
-function insertEmoji(emoji){
-    const textarea = document.getElementById("postContent");
-    textarea.value += emoji;
-    textarea.focus();
-    // 选完表情自动关闭面板
-    document.getElementById("emojiPanel").style.display = "none";
 }
 
 // ========== 文件上传预览 ==========
