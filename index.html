@@ -61,7 +61,7 @@ input,textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;m
 input:focus,textarea:focus{border-color:var(--main);box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
 button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);color:#fff;cursor:pointer}
 .time-text{font-size:12px;color:var(--gray);margin-top:4px}
-.hide{display:none}
+.hide{display:none !important;}
 
 .footer{margin-top:40px;text-align:center;font-size:12px;color:var(--gray);padding-top:20px;border-top:1px solid var(--border);}
 </style>
@@ -133,6 +133,7 @@ const EMOJIS = ['😀','😃','😄','😁','😆','😅','😂','🤣','😊','
 // 渲染表情
 function renderEmoji(targetId){
     let box = document.getElementById(targetId);
+    if(!box) return;
     let html = '';
     EMOJIS.forEach(e=>{
         html+=`<span class="emoji" onclick="insertEmoji('${targetId}','${e}')">${e}</span>`;
@@ -140,24 +141,31 @@ function renderEmoji(targetId){
     box.innerHTML = html;
 }
 
-// 显示/隐藏表情
+// 显示/隐藏表情 —— 【修复完成】
 function toggleEmoji(prefix){
-    let el = document.getElementById("emoji"+prefix.toUpperCase());
-    el.classList.toggle("hide");
+    const id = "emoji" + prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    const el = document.getElementById(id);
+    if(el){
+        el.classList.toggle("hide");
+    }
 }
 
 // 插入表情到输入框 —— 【修复完成】
 function insertEmoji(targetId, emoji){
-    let input;
+    let input = null;
+
     if(targetId === "emojiPost"){
         input = document.getElementById("postContent");
-    } else if(targetId.startsWith("emojiReply_")){
-        let pid = targetId.replace("emojiReply_","");
+    }
+    else if(targetId.startsWith("emojiReply_")){
+        const pid = targetId.replace("emojiReply_","");
         input = document.getElementById("reply_"+pid);
-    } else if(targetId.startsWith("emojiReply2_")){
-        let rid = targetId.replace("emojiReply2_","");
+    }
+    else if(targetId.startsWith("emojiReply2_")){
+        const rid = targetId.replace("emojiReply2_","");
         input = document.getElementById("reply2_"+rid);
     }
+
     if(input){
         input.value += emoji;
     }
