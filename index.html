@@ -47,29 +47,35 @@ button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);col
 .hide{display:none}
 .footer{margin-top:40px;text-align:center;font-size:12px;color:var(--gray);padding-top:20px;border-top:1px solid var(--border);}
 
-/* 表情面板样式 */
+/* 表情面板修复 */
 .emoji-btn{
   display:inline-block;
-  padding:6px 12px;
+  padding:8px 14px;
   background:#fff;
   border:1px solid #ddd;
-  border-radius:6px;
+  border-radius:8px;
   cursor:pointer;
   margin-right:8px;
+  user-select:none;
+  /* 修复移动端点击 */
+  -webkit-tap-highlight-color: transparent;
 }
 .emoji-panel{
-  display:none;
-  padding:10px;
+  display:none; /* 初始隐藏 */
+  padding:12px;
   background:#fff;
   border:1px solid #ddd;
   border-radius:8px;
   margin:10px 0;
+  flex-wrap:wrap;
+  gap:8px;
 }
 .emoji-item{
   display:inline-block;
-  font-size:20px;
-  padding:4px;
+  font-size:22px;
+  padding:6px 8px;
   cursor:pointer;
+  border-radius:6px;
 }
 .emoji-item:hover{background:#f0f0f0}
 
@@ -99,9 +105,9 @@ button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);col
         <input type="text" id="postTitle" placeholder="📌 输入主题标题">
         <textarea id="postContent" rows="3" placeholder="✍️ 输入帖子内容"></textarea>
 
-        <!-- 表情按钮+面板 -->
+        <!-- 表情按钮（修复版） -->
         <div style="margin-bottom:10px">
-            <span class="emoji-btn" onclick="toggleEmojiPanel()">😊 表情</span>
+            <div class="emoji-btn" id="emojiBtn" onclick="toggleEmojiPanel()">😊 表情</div>
             <div class="emoji-panel" id="emojiPanel">
                 <span class="emoji-item" onclick="insertEmoji('😀')">😀</span>
                 <span class="emoji-item" onclick="insertEmoji('😂')">😂</span>
@@ -113,10 +119,15 @@ button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);col
                 <span class="emoji-item" onclick="insertEmoji('👍')">👍</span>
                 <span class="emoji-item" onclick="insertEmoji('👎')">👎</span>
                 <span class="emoji-item" onclick="insertEmoji('❤️')">❤️</span>
+                <span class="emoji-item" onclick="insertEmoji('🎉')">🎉</span>
+                <span class="emoji-item" onclick="insertEmoji('🔥')">🔥</span>
+                <span class="emoji-item" onclick="insertEmoji('✨')">✨</span>
+                <span class="emoji-item" onclick="insertEmoji('🤣')">🤣</span>
+                <span class="emoji-item" onclick="insertEmoji('😢')">😢</span>
             </div>
         </div>
 
-        <!-- 文件上传按钮（仅预览，最终会转为链接） -->
+        <!-- 文件上传 -->
         <div style="margin-bottom:10px">
             <button type="button" onclick="document.getElementById('imgUpload').click()">📷 上传图片</button>
             <button type="button" onclick="document.getElementById('videoUpload').click()">🎬 上传视频</button>
@@ -126,9 +137,7 @@ button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);col
             <input type="file" id="docUpload" accept=".pdf,.doc,.docx,.txt,.sh" multiple style="display:none" onchange="previewFiles(this,'doc')">
         </div>
 
-        <!-- 文件预览区域 -->
         <div class="file-preview" id="filePreview"></div>
-
         <button onclick="publishPost()">发布主题</button>
     </div>
 
@@ -150,7 +159,7 @@ const CONFIG = {
     maxTextLen: 2000
 };
 let lastPostTime = 0;
-let previewFiles = []; // 临时存储上传的文件信息
+let previewFiles = [];
 
 // 访问统计
 function countVisit(){
@@ -180,15 +189,22 @@ function checkFlood(){
     lastPostTime=now;return true;
 }
 
-// ========== 表情功能 ==========
+// ========== 表情功能（修复版） ==========
 function toggleEmojiPanel(){
     const panel = document.getElementById("emojiPanel");
-    panel.style.display = panel.style.display === "block" ? "none" : "block";
+    // 修复：判断空+none两种情况
+    if(panel.style.display === "none" || panel.style.display === ""){
+        panel.style.display = "flex";
+    }else{
+        panel.style.display = "none";
+    }
 }
 function insertEmoji(emoji){
     const textarea = document.getElementById("postContent");
     textarea.value += emoji;
     textarea.focus();
+    // 选完表情自动关闭面板
+    document.getElementById("emojiPanel").style.display = "none";
 }
 
 // ========== 文件上传预览 ==========
@@ -218,7 +234,6 @@ function publishPost(){
     let content=document.getElementById("postContent").value.trim();
     if(!checkContent(title)||!checkContent(content)){alert("标题/内容不能为空");return}
     
-    // 拼接文件信息（仅作为文本存储，实际需手动上传到图床）
     let fileInfo = previewFiles.map(f => {
         if(f.type === "image") return `[图片:${f.name}]`;
         if(f.type === "video") return `[视频:${f.name}]`;
