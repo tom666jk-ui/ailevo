@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>艾灵坞 ailevo - 管理后台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft Yahei",sans-serif}
+:root{
+  --main:#2563eb;
+  --red:#f56c6c;
+  --green:#67c23a;
+  --gray:#909399;
+  --bg:#f5f7fa;
+  --card:#ffffff;
+}
+body{background:var(--bg);padding:16px}
+.container{max-width:980px;margin:0 auto;background:var(--card);border-radius:14px;padding:24px}
+.header{text-align:center;margin-bottom:20px}
+.logo-sm{
+  width:60px;height:60px;border-radius:50%;
+  background:linear-gradient(135deg,var(--main),#60a5fa);
+  color:#fff;line-height:60px;
+  font-size:22px;font-weight:bold;margin:0 auto 8px;
+}
+.admin-panel{background:#f0f5fb;padding:20px;border-radius:10px;margin-bottom:20px}
+.btn{padding:8px 14px;border:none;border-radius:6px;cursor:pointer;margin-right:6px}
+.btn-blue{background:var(--main);color:#fff}
+.btn-red{background:var(--red);color:#fff}
+.btn-gray{background:var(--gray);color:#fff}
+.btn-green{background:var(--green);color:#fff}
+.post-card{border:1px solid #eee;border-radius:12px;padding:16px;margin-bottom:12px}
+.top-tag{background:var(--red);color:#fff;padding:2px 6px;border-radius:4px;font-size:12px;margin-right:6px}
+.time-text{font-size:12px;color:var(--gray)}
+.footer{margin-top:30px;text-align:center;font-size:12px;color:var(--gray);padding-top:15px;border-top:1px solid #eee;}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo-sm">艾</div>
+        <h2>🔧 艾灵坞 ailevo 管理后台</h2>
+        <p style="font-size:13px;color:var(--gray)">管理员专属运营控制台</p>
+    </div>
+
+    <div class="admin-panel">
+        <div style="margin-bottom:12px">
+            <button class="btn btn-blue" onclick="tryLogin()">登录管理员</button>
+            <button class="btn btn-gray" onclick="logout()">退出登录</button>
+        </div>
+        <div style="margin-bottom:12px">
+            <label>站点状态：</label>
+            <select id="siteSwitch" onchange="changeSite()">
+                <option value="on">正常开放</option>
+                <option value="off">关闭维护</option>
+            </select>
+        </div>
+        <button class="btn btn-red" onclick="clearAll()">清空全部帖子</button>
+    </div>
+
+    <div id="list"></div>
+
+    <div class="footer">
+        <p>© 2026 艾灵坞ailevo 管理系统 | 备案：<a href="https://beian.miit.gov.cn" target="_blank" style="color:var(--gray);text-decoration:none">粤ICP备18122527号</a></p>
+    </div>
+</div>
+
+<script>
+// 自定义管理员密码
+const ADMIN_PWD = "Ailevo@2026";
+const STORAGE = "ailevo_community_v4";
+let isAdmin = false;
+
+function getData(){
+    try{
+        let d=localStorage.getItem(STORAGE);
+        return d?JSON.parse(d):{posts:[],banList:[],siteSwitch:"on"};
+    }catch(e){return {posts:[],banList:[],siteSwitch:"on"}}
+}
+function save(d){localStorage.setItem(STORAGE,JSON.stringify(d))}
+
+function tryLogin(){
+    let p=prompt("请输入艾灵坞管理员密码：");
+    if(p===ADMIN_PWD){isAdmin=true;alert("✅ 管理员登录成功");render()}
+    else{alert("❌ 密码错误，拒绝访问")}
+}
+function logout(){isAdmin=false;alert("已退出管理员登录");render()}
+
+function changeSite(){
+    if(!isAdmin)return;
+    let d=getData();
+    d.siteSwitch=document.getElementById("siteSwitch").value;
+    save(d);render();
+    alert("站点状态切换完成");
+}
+
+function clearAll(){
+    if(!isAdmin)return;
+    if(!confirm("⚠️ 警告：清空所有帖子与回复，不可恢复！"))return;
+    let d=getData();d.posts=[];save(d);render();
+    alert("已清空全站内容");
+}
+
+function toggleTop(id){
+    if(!isAdmin)return;
+    let d=getData();
+    let p=d.posts.find(x=>x.id===id);
+    if(p)p.isTop=!p.isTop;save(d);render()
+}
+
+function delPost(id){
+    if(!isAdmin)return;
+    if(!confirm("确定删除该帖子及全部回复？"))return;
+    let d=getData();
+    d.posts=d.posts.filter(x=>x.id!==id);
+    save(d);render()
+}
+
+function render(){
+    if(!isAdmin){document.getElementById("list").innerHTML="<h3 style='text-align:center;color:var(--red)'>请先完成管理员登录</h3>";return}
+    let d=getData();
+    document.getElementById("siteSwitch").value=d.siteSwitch;
+    let top=d.posts.filter(x=>x.isTop);
+    let normal=d.posts.filter(x=>!x.isTop);
+    let all=[...top,...normal];
+    let html="";
+
+    all.forEach(p=>{
+        html+=`
+        <div class="post-card">
+            ${p.isTop?'<span class="top-tag">置顶</span>':''}
+            <h4>${p.title}</h4>
+            <div class="time-text">${p.time}</div>
+            <div style="margin-top:8px">
+                <button class="btn btn-green" onclick="toggleTop('${p.id}')">${p.isTop?'取消置顶':'设为置顶'}</button>
+                <button class="btn btn-red" onclick="delPost('${p.id}')">删除帖子</button>
+            </div>
+        </div>`;
+    });
+    document.getElementById("list").innerHTML=html;
+}
+
+window.onload=render;
+</script>
+</body>
+</html>

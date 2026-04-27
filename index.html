@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>艾灵坞 ailevo - 交流社区</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft Yahei",sans-serif}
+:root{
+  --main:#2563eb;
+  --red:#f56c6c;
+  --gray:#909399;
+  --bg:#f5f7fa;
+  --card:#ffffff;
+  --border:#eee;
+}
+body{background:var(--bg);padding:16px}
+.container{max-width:980px;margin:0 auto;background:var(--card);border-radius:14px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,0.06)}
+/* Logo 头部 */
+.header{text-align:center;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.logo{
+  width:72px;height:72px;border-radius:50%;
+  background:linear-gradient(135deg,var(--main),#60a5fa);
+  color:#fff;
+  font-size:28px;font-weight:bold;
+  line-height:72px;margin:0 auto 10px;
+}
+.header h1{font-size:28px;color:#192946}
+.header span{color:var(--main);font-weight:bold}
+.header p{color:var(--gray);font-size:14px;margin-top:6px}
+/* 访问统计 */
+.visit-info{text-align:center;font-size:13px;color:var(--gray);margin-bottom:16px;}
+
+.publish-box{border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;background:#fafafa}
+.post-card{border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:18px}
+.post-card.top-post{border:1px solid var(--red);background:#fff6f6}
+.top-tag{display:inline-block;background:var(--red);color:#fff;font-size:12px;padding:2px 8px;border-radius:4px;margin-right:8px}
+
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--main);color:#fff;text-align:center;line-height:40px;font-weight:bold;display:inline-block;margin-right:10px}
+.post-head{display:flex;align-items:flex-start;margin-bottom:10px}
+.reply-wrap{margin-top:16px;padding-top:16px;border-top:1px dashed var(--border)}
+.reply-item{padding:12px;margin-left:15px;border-left:2px solid #c0d8f5;margin-bottom:10px;background:#f9fbff;border-radius:0 6px 6px 0}
+.reply2-item{margin-left:40px;border-left-color:#b2d9b2}
+
+input,textarea{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;outline:none}
+input:focus,textarea:focus{border-color:var(--main);box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
+button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);color:#fff;cursor:pointer}
+.time-text{font-size:12px;color:var(--gray);margin-top:4px}
+.hide{display:none}
+/* 底部备案 */
+.footer{margin-top:40px;text-align:center;font-size:12px;color:var(--gray);padding-top:20px;border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">艾</div>
+        <h1>艾灵坞 <span>ailevo</span></h1>
+        <p>Ailevo 专属交流社区 · 文明发言</p>
+    </div>
+
+    <div class="visit-info">
+        社区累计访问：<span id="visitCount">0</span> 次
+    </div>
+
+    <div id="maintainTip" class="hide" style="text-align:center;color:var(--red);padding:30px;">
+        <h3>🚧 社区维护中，暂时无法发帖与回复</h3>
+    </div>
+
+    <div class="publish-box" id="publishBox">
+        <input type="text" id="postTitle" placeholder="📌 输入主题标题">
+        <textarea id="postContent" rows="3" placeholder="✍️ 输入帖子内容"></textarea>
+        <button onclick="publishPost()">发布主题</button>
+    </div>
+
+    <div id="postList"></div>
+
+    <div class="footer">
+        <p>© 2025-2026 艾灵坞 ailevo 版权所有</p>
+        <p>备案号：<a href="https://beian.miit.gov.cn" target="_blank" style="color:var(--gray);text-decoration:none">粤ICP备18122527号</a></p>
+        <p>文明社区 · 违规内容管理员定时清理</p>
+    </div>
+</div>
+
+<script>
+// ========== 基础配置 ==========
+const CONFIG = {
+    storageKey: "ailevo_community_v4",
+    visitKey: "ailevo_visit_count",
+    floodInterval: 5000,
+    maxTextLen: 2000
+};
+let lastPostTime = 0;
+
+// 访问统计
+function countVisit(){
+    let num = Number(localStorage.getItem(CONFIG.visitKey) || 0);
+    num++;
+    localStorage.setItem(CONFIG.visitKey, num);
+    document.getElementById("visitCount").innerText = num;
+}
+countVisit();
+
+function getLocalData(){
+    try{
+        let data = localStorage.getItem(CONFIG.storageKey);
+        return data?JSON.parse(data):{posts:[],banList:[],siteSwitch:"on"};
+    }catch(e){
+        return {posts:[],banList:[],siteSwitch:"on"};
+    }
+}
+
+function safeEscape(str){
+    return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function checkContent(t){return t&&t.trim()!=""&&t.length<=CONFIG.maxTextLen}
+function checkFlood(){
+    let now=Date.now();
+    if(now-lastPostTime<CONFIG.floodInterval)return false;
+    lastPostTime=now;return true;
+}
+
+function publishPost(){
+    let data=getLocalData();
+    if(data.siteSwitch==="off"){alert("维护中无法发帖");return}
+    if(!checkFlood()){alert("操作频繁，请稍后再试");return}
+    let title=document.getElementById("postTitle").value.trim();
+    let content=document.getElementById("postContent").value.trim();
+    if(!checkContent(title)||!checkContent(content)){alert("标题/内容不能为空");return}
+    
+    data.posts.unshift({
+        id:"p_"+Date.now(),title:safeEscape(title),content:safeEscape(content),
+        time:new Date().toLocaleString(),isTop:false,replyList:[]
+    });
+    localStorage.setItem(CONFIG.storageKey,JSON.stringify(data));
+    document.getElementById("postTitle").value="";
+    document.getElementById("postContent").value="";
+    renderPage();
+}
+
+function addReply(postId){
+    let data=getLocalData();
+    if(data.siteSwitch==="off"){alert("维护中无法回复");return}
+    if(!checkFlood()){alert("操作频繁");return}
+    let v=document.getElementById("reply_"+postId).value.trim();
+    if(!checkContent(v)){alert("回复不能为空");return}
+    let p=data.posts.find(x=>x.id===postId);
+    if(!p)return;
+    p.replyList.push({
+        id:"r_"+Date.now(),content:safeEscape(v),
+        time:new Date().toLocaleString(),reply2:[]
+    });
+    localStorage.setItem(CONFIG.storageKey,JSON.stringify(data));
+    renderPage();
+}
+
+function addReply2(pid,rid){
+    let data=getLocalData();
+    if(data.siteSwitch==="off")return;
+    let v=document.getElementById("reply2_"+rid).value.trim();
+    if(!checkContent(v))return;
+    let p=data.posts.find(x=>x.id===pid);
+    let r=p?.replyList.find(x=>x.id===rid);
+    if(!r)return;
+    r.reply2.push({content:safeEscape(v),time:new Date().toLocaleString()});
+    localStorage.setItem(CONFIG.storageKey,JSON.stringify(data));
+    renderPage();
+}
+
+function renderPage(){
+    let data=getLocalData();
+    let tip=document.getElementById("maintainTip");
+    let box=document.getElementById("publishBox");
+    if(data.siteSwitch==="off"){tip.classList.remove("hide");box.classList.add("hide")}
+    else{tip.classList.add("hide");box.classList.remove("hide")}
+
+    let top=data.posts.filter(x=>x.isTop);
+    let normal=data.posts.filter(x=>!x.isTop);
+    let all=[...top,...normal];
+    let html="";
+
+    all.forEach(post=>{
+        html+=`
+        <div class="post-card ${post.isTop?'top-post':''}">
+            <div class="post-head">
+                <div class="avatar">艾</div>
+                <div>${post.isTop?'<span class="top-tag">置顶</span>':''}
+                <h3>${post.title}</h3><div class="time-text">${post.time}</div></div>
+            </div>
+            <div class="content">${post.content}</div>
+            <div class="reply-wrap">
+                <textarea id="reply_${post.id}" rows="2" placeholder="回复内容"></textarea>
+                <button onclick="addReply('${post.id}')">提交回复</button>
+        `;
+        post.replyList.forEach(r1=>{
+            html+=`
+            <div class="reply-item">
+                <div>${r1.content}</div><div class="time-text">${r1.time}</div>
+                <textarea id="reply2_${r1.id}" rows="1" placeholder="楼中楼回复"></textarea>
+                <button onclick="addReply2('${post.id}','${r1.id}')">回复</button>
+            `;
+            r1.reply2.forEach(r2=>{
+                html+=`<div class="reply-item reply2-item"><div>${r2.content}</div><div class="time-text">${r2.time}</div></div>`;
+            });
+            html+="</div>";
+        });
+        html+="</div></div>";
+    });
+    document.getElementById("postList").innerHTML=html;
+}
+
+window.onload=renderPage;
+</script>
+</body>
+</html>
