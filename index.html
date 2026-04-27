@@ -16,7 +16,6 @@
 }
 body{background:var(--bg);padding:16px}
 .container{max-width:980px;margin:0 auto;background:var(--card);border-radius:14px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,0.06)}
-/* Logo 头部 */
 .header{text-align:center;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--border)}
 .logo{
   width:72px;height:72px;border-radius:50%;
@@ -28,7 +27,6 @@ body{background:var(--bg);padding:16px}
 .header h1{font-size:28px;color:#192946}
 .header span{color:var(--main);font-weight:bold}
 .header p{color:var(--gray);font-size:14px;margin-top:6px}
-/* 访问统计 */
 .visit-info{text-align:center;font-size:13px;color:var(--gray);margin-bottom:16px;}
 
 .publish-box{border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;background:#fafafa}
@@ -47,8 +45,38 @@ input:focus,textarea:focus{border-color:var(--main);box-shadow:0 0 0 3px rgba(37
 button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);color:#fff;cursor:pointer}
 .time-text{font-size:12px;color:var(--gray);margin-top:4px}
 .hide{display:none}
-/* 底部备案 */
 .footer{margin-top:40px;text-align:center;font-size:12px;color:var(--gray);padding-top:20px;border-top:1px solid var(--border);}
+
+/* 表情面板样式 */
+.emoji-btn{
+  display:inline-block;
+  padding:6px 12px;
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:6px;
+  cursor:pointer;
+  margin-right:8px;
+}
+.emoji-panel{
+  display:none;
+  padding:10px;
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:8px;
+  margin:10px 0;
+}
+.emoji-item{
+  display:inline-block;
+  font-size:20px;
+  padding:4px;
+  cursor:pointer;
+}
+.emoji-item:hover{background:#f0f0f0}
+
+/* 文件上传预览 */
+.file-preview{margin-top:10px;display:flex;flex-wrap:wrap;gap:10px}
+.preview-img{max-width:120px;max-height:120px;border-radius:6px}
+.file-tag{background:#e6f0ff;padding:4px 8px;border-radius:4px;font-size:12px}
 </style>
 </head>
 <body>
@@ -70,6 +98,37 @@ button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);col
     <div class="publish-box" id="publishBox">
         <input type="text" id="postTitle" placeholder="📌 输入主题标题">
         <textarea id="postContent" rows="3" placeholder="✍️ 输入帖子内容"></textarea>
+
+        <!-- 表情按钮+面板 -->
+        <div style="margin-bottom:10px">
+            <span class="emoji-btn" onclick="toggleEmojiPanel()">😊 表情</span>
+            <div class="emoji-panel" id="emojiPanel">
+                <span class="emoji-item" onclick="insertEmoji('😀')">😀</span>
+                <span class="emoji-item" onclick="insertEmoji('😂')">😂</span>
+                <span class="emoji-item" onclick="insertEmoji('😍')">😍</span>
+                <span class="emoji-item" onclick="insertEmoji('🤔')">🤔</span>
+                <span class="emoji-item" onclick="insertEmoji('😎')">😎</span>
+                <span class="emoji-item" onclick="insertEmoji('😭')">😭</span>
+                <span class="emoji-item" onclick="insertEmoji('😡')">😡</span>
+                <span class="emoji-item" onclick="insertEmoji('👍')">👍</span>
+                <span class="emoji-item" onclick="insertEmoji('👎')">👎</span>
+                <span class="emoji-item" onclick="insertEmoji('❤️')">❤️</span>
+            </div>
+        </div>
+
+        <!-- 文件上传按钮（仅预览，最终会转为链接） -->
+        <div style="margin-bottom:10px">
+            <button type="button" onclick="document.getElementById('imgUpload').click()">📷 上传图片</button>
+            <button type="button" onclick="document.getElementById('videoUpload').click()">🎬 上传视频</button>
+            <button type="button" onclick="document.getElementById('docUpload').click()">📄 上传文档</button>
+            <input type="file" id="imgUpload" accept="image/*" multiple style="display:none" onchange="previewFiles(this,'image')">
+            <input type="file" id="videoUpload" accept="video/*" multiple style="display:none" onchange="previewFiles(this,'video')">
+            <input type="file" id="docUpload" accept=".pdf,.doc,.docx,.txt,.sh" multiple style="display:none" onchange="previewFiles(this,'doc')">
+        </div>
+
+        <!-- 文件预览区域 -->
+        <div class="file-preview" id="filePreview"></div>
+
         <button onclick="publishPost()">发布主题</button>
     </div>
 
@@ -91,6 +150,7 @@ const CONFIG = {
     maxTextLen: 2000
 };
 let lastPostTime = 0;
+let previewFiles = []; // 临时存储上传的文件信息
 
 // 访问统计
 function countVisit(){
@@ -120,6 +180,36 @@ function checkFlood(){
     lastPostTime=now;return true;
 }
 
+// ========== 表情功能 ==========
+function toggleEmojiPanel(){
+    const panel = document.getElementById("emojiPanel");
+    panel.style.display = panel.style.display === "block" ? "none" : "block";
+}
+function insertEmoji(emoji){
+    const textarea = document.getElementById("postContent");
+    textarea.value += emoji;
+    textarea.focus();
+}
+
+// ========== 文件上传预览 ==========
+function previewFiles(input, type){
+    const preview = document.getElementById("filePreview");
+    const files = input.files;
+    for(let file of files){
+        previewFiles.push({name:file.name, type:type, url:URL.createObjectURL(file)});
+        let html = "";
+        if(type === "image"){
+            html = `<img src="${URL.createObjectURL(file)}" class="preview-img" alt="预览">`;
+        }else if(type === "video"){
+            html = `<video src="${URL.createObjectURL(file)}" class="preview-img" controls></video>`;
+        }else{
+            html = `<span class="file-tag">${file.name} (${(file.size/1024).toFixed(2)}KB)</span>`;
+        }
+        preview.innerHTML += html;
+    }
+}
+
+// ========== 发布帖子 ==========
 function publishPost(){
     let data=getLocalData();
     if(data.siteSwitch==="off"){alert("维护中无法发帖");return}
@@ -128,6 +218,14 @@ function publishPost(){
     let content=document.getElementById("postContent").value.trim();
     if(!checkContent(title)||!checkContent(content)){alert("标题/内容不能为空");return}
     
+    // 拼接文件信息（仅作为文本存储，实际需手动上传到图床）
+    let fileInfo = previewFiles.map(f => {
+        if(f.type === "image") return `[图片:${f.name}]`;
+        if(f.type === "video") return `[视频:${f.name}]`;
+        return `[文件:${f.name}]`;
+    }).join("\n");
+    content += "\n\n" + fileInfo;
+
     data.posts.unshift({
         id:"p_"+Date.now(),title:safeEscape(title),content:safeEscape(content),
         time:new Date().toLocaleString(),isTop:false,replyList:[]
@@ -135,9 +233,12 @@ function publishPost(){
     localStorage.setItem(CONFIG.storageKey,JSON.stringify(data));
     document.getElementById("postTitle").value="";
     document.getElementById("postContent").value="";
+    document.getElementById("filePreview").innerHTML="";
+    previewFiles = [];
     renderPage();
 }
 
+// ========== 回复功能 ==========
 function addReply(postId){
     let data=getLocalData();
     if(data.siteSwitch==="off"){alert("维护中无法回复");return}
