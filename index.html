@@ -104,40 +104,40 @@ button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);col
         <input type="text" id="postTitle" placeholder="📌 输入主题标题">
         <textarea id="postContent" rows="3" placeholder="✍️ 输入帖子内容"></textarea>
 
-        <!-- 表情按钮（现在绝对不会报错） -->
+        <!-- 表情按钮（去掉onclick，用JS绑定） -->
         <div style="margin-bottom:10px">
-            <div class="emoji-btn" id="emojiBtn" onclick="toggleEmojiPanel()">😊 表情</div>
+            <div class="emoji-btn" id="emojiBtn">😊 表情</div>
             <div class="emoji-panel" id="emojiPanel">
-                <span class="emoji-item" onclick="insertEmoji('😀')">😀</span>
-                <span class="emoji-item" onclick="insertEmoji('😂')">😂</span>
-                <span class="emoji-item" onclick="insertEmoji('😍')">😍</span>
-                <span class="emoji-item" onclick="insertEmoji('🤔')">🤔</span>
-                <span class="emoji-item" onclick="insertEmoji('😎')">😎</span>
-                <span class="emoji-item" onclick="insertEmoji('😭')">😭</span>
-                <span class="emoji-item" onclick="insertEmoji('😡')">😡</span>
-                <span class="emoji-item" onclick="insertEmoji('👍')">👍</span>
-                <span class="emoji-item" onclick="insertEmoji('👎')">👎</span>
-                <span class="emoji-item" onclick="insertEmoji('❤️')">❤️</span>
-                <span class="emoji-item" onclick="insertEmoji('🎉')">🎉</span>
-                <span class="emoji-item" onclick="insertEmoji('🔥')">🔥</span>
-                <span class="emoji-item" onclick="insertEmoji('✨')">✨</span>
-                <span class="emoji-item" onclick="insertEmoji('🤣')">🤣</span>
-                <span class="emoji-item" onclick="insertEmoji('😢')">😢</span>
+                <span class="emoji-item">😀</span>
+                <span class="emoji-item">😂</span>
+                <span class="emoji-item">😍</span>
+                <span class="emoji-item">🤔</span>
+                <span class="emoji-item">😎</span>
+                <span class="emoji-item">😭</span>
+                <span class="emoji-item">😡</span>
+                <span class="emoji-item">👍</span>
+                <span class="emoji-item">👎</span>
+                <span class="emoji-item">❤️</span>
+                <span class="emoji-item">🎉</span>
+                <span class="emoji-item">🔥</span>
+                <span class="emoji-item">✨</span>
+                <span class="emoji-item">🤣</span>
+                <span class="emoji-item">😢</span>
             </div>
         </div>
 
-        <!-- 文件上传 -->
+        <!-- 文件上传（去掉onclick，用JS绑定） -->
         <div style="margin-bottom:10px">
-            <button type="button" onclick="document.getElementById('imgUpload').click()">📷 上传图片</button>
-            <button type="button" onclick="document.getElementById('videoUpload').click()">🎬 上传视频</button>
-            <button type="button" onclick="document.getElementById('docUpload').click()">📄 上传文档</button>
-            <input type="file" id="imgUpload" accept="image/*" multiple style="display:none" onchange="previewFiles(this,'image')">
-            <input type="file" id="videoUpload" accept="video/*" multiple style="display:none" onchange="previewFiles(this,'video')">
-            <input type="file" id="docUpload" accept=".pdf,.doc,.docx,.txt,.sh" multiple style="display:none" onchange="previewFiles(this,'doc')">
+            <button type="button" id="imgBtn">📷 上传图片</button>
+            <button type="button" id="videoBtn">🎬 上传视频</button>
+            <button type="button" id="docBtn">📄 上传文档</button>
+            <input type="file" id="imgUpload" accept="image/*" multiple style="display:none">
+            <input type="file" id="videoUpload" accept="video/*" multiple style="display:none">
+            <input type="file" id="docUpload" accept=".pdf,.doc,.docx,.txt,.sh" multiple style="display:none">
         </div>
 
         <div class="file-preview" id="filePreview"></div>
-        <button onclick="publishPost()">发布主题</button>
+        <button id="publishBtn">发布主题</button>
     </div>
 
     <div id="postList"></div>
@@ -150,22 +150,6 @@ button{padding:9px 16px;border:none;border-radius:8px;background:var(--main);col
 </div>
 
 <script>
-// ========== 【关键修复】先定义表情函数，再定义其他 ==========
-function toggleEmojiPanel(){
-    const panel = document.getElementById("emojiPanel");
-    if(panel.style.display === "none" || panel.style.display === ""){
-        panel.style.display = "flex";
-    }else{
-        panel.style.display = "none";
-    }
-}
-function insertEmoji(emoji){
-    const textarea = document.getElementById("postContent");
-    textarea.value += emoji;
-    textarea.focus();
-    document.getElementById("emojiPanel").style.display = "none";
-}
-
 // ========== 基础配置 ==========
 const CONFIG = {
     storageKey: "ailevo_community_v4",
@@ -202,6 +186,22 @@ function checkFlood(){
     let now=Date.now();
     if(now-lastPostTime<CONFIG.floodInterval)return false;
     lastPostTime=now;return true;
+}
+
+// ========== 表情功能 ==========
+function toggleEmojiPanel(){
+    const panel = document.getElementById("emojiPanel");
+    if(panel.style.display === "none" || panel.style.display === ""){
+        panel.style.display = "flex";
+    }else{
+        panel.style.display = "none";
+    }
+}
+function insertEmoji(emoji){
+    const textarea = document.getElementById("postContent");
+    textarea.value += emoji;
+    textarea.focus();
+    document.getElementById("emojiPanel").style.display = "none";
 }
 
 // ========== 文件上传预览 ==========
@@ -322,7 +322,42 @@ function renderPage(){
     document.getElementById("postList").innerHTML=html;
 }
 
-window.onload=renderPage;
+// ========== 事件绑定（页面加载完成后再绑定） ==========
+document.addEventListener("DOMContentLoaded", function(){
+    // 表情按钮
+    document.getElementById("emojiBtn").addEventListener("click", toggleEmojiPanel);
+    document.querySelectorAll(".emoji-item").forEach(item=>{
+        item.addEventListener("click", function(){
+            insertEmoji(this.textContent);
+        });
+    });
+
+    // 文件上传按钮
+    document.getElementById("imgBtn").addEventListener("click", function(){
+        document.getElementById("imgUpload").click();
+    });
+    document.getElementById("videoBtn").addEventListener("click", function(){
+        document.getElementById("videoUpload").click();
+    });
+    document.getElementById("docBtn").addEventListener("click", function(){
+        document.getElementById("docUpload").click();
+    });
+    document.getElementById("imgUpload").addEventListener("change", function(){
+        previewFiles(this,"image");
+    });
+    document.getElementById("videoUpload").addEventListener("change", function(){
+        previewFiles(this,"video");
+    });
+    document.getElementById("docUpload").addEventListener("change", function(){
+        previewFiles(this,"doc");
+    });
+
+    // 发布按钮
+    document.getElementById("publishBtn").addEventListener("click", publishPost);
+
+    // 初始渲染
+    renderPage();
+});
 </script>
 </body>
 </html>
